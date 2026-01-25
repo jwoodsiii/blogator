@@ -4,13 +4,14 @@ import (
 	"os"
 	"fmt"
 	"encoding/json"
+	"path/filepath"
 )
 
 const configFileName = "/.blogatorconfig.json"
 
 type Config struct {
-	Db_url            string `json:"db_url"`
-	Current_user_name string `json:"current_user_name"`
+	DBUrl            string `json:"db_url"`
+	CurrentUserName string `json:"current_user_name"`
 }
 
 func Read() (Config, error) {
@@ -32,9 +33,10 @@ func Read() (Config, error) {
 	return cfg, nil
 }
 
-func (cfg *Config) SetUser() {
+func (cfg *Config) SetUser(user string) error{
 	// write config struct to json after setting current_user_name
-	cfg.Current_user_name = "jwoodsiii"
+	cfg.CurrentUserName = user
+	return write(*cfg)
 }
 
 func getConfigFilePath() (string, error) {
@@ -43,21 +45,43 @@ func getConfigFilePath() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return home + configFileName, nil
+	return filepath.Join(home,configFileName), nil
 }
 
 func write(cfg Config) error {
-	// write config struct to json file at config file
 	fp, err := getConfigFilePath()
 	if err != nil {
 		return err
 	}
-	cfg_json, err := json.MarshalIndent(cfg, "", "\t")
+
+	file, err := os.Create(fp)
 	if err != nil {
 		return err
 	}
-	if err := os.WriteFile(fp, cfg_json, 0666); err != nil {
+	defer file.Close()
+
+	encoder := json.NewEncoder(file)
+	err = encoder.Encode(cfg)
+	if err != nil {
 		return err
 	}
+
 	return nil
 }
+
+
+// func write(cfg Config) error {
+// 	// write config struct to json file at config file
+// 	fp, err := getConfigFilePath()
+// 	if err != nil {
+// 		return err
+// 	}
+// 	cfg_json, err := json.MarshalIndent(cfg, "", "\t")
+// 	if err != nil {
+// 		return err
+// 	}
+// 	if err := os.WriteFile(fp, cfg_json, 0666); err != nil {
+// 		return err
+// 	}
+// 	return nil
+// }
