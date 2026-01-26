@@ -1,13 +1,18 @@
 package main
 
 import (
-	"os"
+	"database/sql"
 	"log"
+	"os"
+
 	"github.com/jwoodsiii/blogator/internal/config"
+	"github.com/jwoodsiii/blogator/internal/database"
+	_ "github.com/lib/pq"
 )
 
 type state struct {
-	cfg		*config.Config
+	cfg *config.Config
+	db  *database.Queries
 }
 
 func main() {
@@ -16,21 +21,28 @@ func main() {
 		log.Fatalf("Error reading config: %v", err)
 	}
 
-	// cfg.SetUser("jwoodsiii")
+	db, err := sql.Open("postgres", cfg.DBUrl)
+	if err != nil {
+		log.Fatalf("Error opening database connection: %v", err)
+	}
+
+	dbQueries := database.New(db)
+
 	s := &state{
 		cfg: &cfg,
+		db:  dbQueries,
 	}
 
 	cmds := commands{
-			handlers: make(map[string]func(*state, command) error),
-		}
+		handlers: make(map[string]func(*state, command) error),
+	}
 	cmds.register("login", handlerLogin)
+	cmds.register("register", handlerRegister)
 
 	if len(os.Args) < 2 {
 		log.Fatal("Not enough args, require command to execute")
 	}
 	userInput := os.Args[1:]
-
 
 	cmdName := userInput[0]
 	cmdArgs := userInput[1:]
