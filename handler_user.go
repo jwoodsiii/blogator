@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"os"
 	"time"
 
 	"github.com/google/uuid"
@@ -73,8 +72,7 @@ func handlerLogin(s *state, cmd command) error {
 	user := cmd.Args[0]
 	dbUser, err := s.db.GetUser(context.Background(), user)
 	if err != nil {
-		fmt.Errorf("Error attempting to login as user: %s, %v", user, err)
-		os.Exit(1)
+		return fmt.Errorf("Error attempting to login as user: %s, %v", user, err)
 	}
 
 	if err := s.cfg.SetUser(dbUser.Name); err != nil {
