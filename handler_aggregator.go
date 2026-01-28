@@ -9,6 +9,25 @@ import (
 	"github.com/jwoodsiii/blogator/internal/database"
 )
 
+func handlerUnfollow(s *state, cmd command, currUser database.User) error {
+	// accept feed url as arg and unfollow it for current user
+	if len(cmd.Args) != 1 {
+		return fmt.Errorf("usage: %s <url>", cmd.Name)
+	}
+
+	url := cmd.Args[0]
+	ctx := context.Background()
+	feed, err := s.db.GetFeedByUrl(ctx, url)
+	if err != nil {
+		return fmt.Errorf("Error: %v attempting to pull feed from db using url: %s", err, url)
+	}
+
+	if err := s.db.DeleteFeedFollow(ctx, database.DeleteFeedFollowParams{UserID: currUser.ID, FeedID: feed.ID}); err != nil {
+		return fmt.Errorf("Error attempting to delete feed follow: %v", err)
+	}
+	return nil
+}
+
 func handlerFeeds(s *state, cmd command) error {
 	if len(cmd.Args) != 0 {
 		return fmt.Errorf("usage: %s", cmd.Name)
@@ -64,6 +83,7 @@ func handlerFollow(s *state, cmd command, currUser database.User) error {
 	}
 
 	ff, err := s.db.CreateFeedFollows(ctx, database.CreateFeedFollowsParams{ID: uuid.New(), CreatedAt: time.Now().UTC(), UpdatedAt: time.Now().UTC(), UserID: currUser.ID, FeedID: feed.ID})
+
 	if err != nil {
 		return fmt.Errorf("Error creating feed follow: %v", err)
 	}
