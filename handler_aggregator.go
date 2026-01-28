@@ -32,14 +32,14 @@ func handlerFeeds(s *state, cmd command) error {
 	return nil
 }
 
-func handlerFollowing(s *state, cmd command) error {
+func handlerFollowing(s *state, cmd command, currUser database.User) error {
 	if len(cmd.Args) != 0 {
 		return fmt.Errorf("usage: %s", cmd.Name)
 	}
 
-	follows, err := s.db.GetFeedFollowsForUser(context.Background(), s.cfg.CurrentUserName)
+	follows, err := s.db.GetFeedFollowsForUser(context.Background(), currUser.Name)
 	if err != nil {
-		return fmt.Errorf("Error pulling user: %s's follows from db: %v", s.cfg.CurrentUserName, err)
+		return fmt.Errorf("Error pulling user: %s's follows from db: %v", currUser.Name, err)
 	}
 	for _, f := range follows {
 		fmt.Printf("Name: %s\n", f.FeedName)
@@ -48,7 +48,7 @@ func handlerFollowing(s *state, cmd command) error {
 	return nil
 }
 
-func handlerFollow(s *state, cmd command) error {
+func handlerFollow(s *state, cmd command, currUser database.User) error {
 	// It takes a single url argument and creates a new feed follow record for the current user.
 	// It should print the name of the feed and the current user once the record is created (which the query we just made should support).
 	// You'll need a query to look up feeds by URL.
@@ -57,10 +57,6 @@ func handlerFollow(s *state, cmd command) error {
 	}
 	url := cmd.Args[0]
 	ctx := context.Background()
-	currUser, err := s.db.GetUser(ctx, s.cfg.CurrentUserName)
-	if err != nil {
-		return fmt.Errorf("Error getting current user from config: %v", err)
-	}
 
 	feed, err := s.db.GetFeedByUrl(ctx, url)
 	if err != nil {
@@ -76,18 +72,13 @@ func handlerFollow(s *state, cmd command) error {
 	return nil
 }
 
-func handlerAddFeed(s *state, cmd command) error {
+func handlerAddFeed(s *state, cmd command, currUser database.User) error {
 	if len(cmd.Args) != 2 {
 		return fmt.Errorf("usage: %s <feed_name> <feed_url>", cmd.Name)
 	}
 	ctx := context.Background()
 	feedName := cmd.Args[0]
 	feedUrl := cmd.Args[1]
-
-	currUser, err := s.db.GetUser(ctx, s.cfg.CurrentUserName)
-	if err != nil {
-		return fmt.Errorf("Error pulling current user from db: %v", err)
-	}
 
 	//create feed and associate with user
 	feed, err := s.db.CreateFeed(ctx, database.CreateFeedParams{ID: uuid.New(), CreatedAt: time.Now().UTC(), UpdatedAt: time.Now().UTC(), Name: feedName, Url: feedUrl, UserID: currUser.ID})
