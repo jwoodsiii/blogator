@@ -9,3 +9,6 @@ values (
     $6
 )
 returning *;
+
+-- name: GetFeeds :many
+select * from feeds;

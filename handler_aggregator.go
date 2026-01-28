@@ -9,6 +9,29 @@ import (
 	"github.com/jwoodsiii/blogator/internal/database"
 )
 
+func handlerFeeds(s *state, cmd command) error {
+	if len(cmd.Args) != 0 {
+		return fmt.Errorf("usage: %s", cmd.Name)
+	}
+	ctx := context.Background()
+	feeds, err := s.db.GetFeeds(ctx)
+	if err != nil {
+		return fmt.Errorf("error pulling feeds from db: %v", err)
+	}
+
+	for _, f := range feeds {
+		fmt.Printf("Name: %s\n", f.Name)
+		fmt.Printf("Url: %s\n", f.Url)
+		user, err := s.db.GetUserFromId(ctx, f.UserID)
+		if err != nil {
+			return fmt.Errorf("Error pulling user from id")
+		}
+		fmt.Printf("User: %s\n", user.Name)
+	}
+
+	return nil
+}
+
 func handlerAddFeed(s *state, cmd command) error {
 	if len(cmd.Args) != 2 {
 		return fmt.Errorf("usage: %s <feed_name> <feed_url>", cmd.Name)
