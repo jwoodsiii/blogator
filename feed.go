@@ -9,8 +9,10 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/jwoodsiii/blogator/internal/database"
 )
 
@@ -30,11 +32,31 @@ type RSSItem struct {
 	PubDate     string `xml:"pubDate"`
 }
 
+const timeFormat = "2026-01-29 08:49:12.923622"
+
 func timeToNullTime(t time.Time) sql.NullTime {
 	if t.IsZero() {
 		return sql.NullTime{Valid: false}
 	}
 	return sql.NullTime{Time: t, Valid: true}
+}
+
+func strToNullString(s string) sql.NullString {
+	if s == "" {
+		return sql.NullString{Valid: false}
+	}
+	return sql.NullString{String: s, Valid: true}
+}
+
+func timeParse(s string) time.Time {
+	if s == "" {
+		return time.Time{}
+	}
+	t, err := time.Parse(timeFormat, s)
+	if err != nil {
+		return time.Time{}
+	}
+	return t
 }
 
 func scrapeFeeds(s *state) error {
@@ -67,10 +89,23 @@ func scrapeFeed(db *database.Queries, feed database.Feed) {
 		return
 	}
 
-	for _, item := range rssFeed.Channel.Item {
-		fmt.Printf("Title: %s", item.Title)
-	}
+	// Update your scraper to save posts. Instead of printing out the titles of the posts, save them to the database!
+	// If you encounter an error where the post with that URL already exists, just ignore it. That will happen a lot.
+	// If it's a different error, you should probably log it.
+	// Make sure that you're parsing the "published at" time properly from the feeds.
+	// Sometimes they might be in a different format than you expect, so you might need to handle that.
+	// You may have to manually convert the data into database/sql types.
 
+	for _, item := range rssFeed.Channel.Item {
+		_, err := db.CreatePost(context.Background(), database.CreatePostParams{ID: uuid.New(), CreatedAt: time.Now().UTC(), UpdatedAt: timeToNullTime(time.Time{}), Title: item.Title, Url: item.Link, Description: strToNullString(item.Description), PublishedAt: timeToNullTime(timeParse(item.PubDate)), FeedID: feed.ID})
+		if err != nil {
+			if strings.Contains(err.Error(), "pq: duplicate key value violates unique constraint") {
+				log.Printf("Duplicate url, continuing: %v", err)
+			} else {
+				log.Fatalf("Error creating post: %v", err)
+			}
+		}
+	}
 	log.Printf("Feed %s collected, %v posts found", feed.Name, len(rssFeed.Channel.Item))
 }
 

@@ -3,11 +3,43 @@ package main
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/jwoodsiii/blogator/internal/database"
 )
+
+func handlerBrowse(s *state, cmd command, currUser database.User) error {
+	var input string
+	//fmt.Printf("args: %v", cmd.Args)
+	if len(cmd.Args) > 1 {
+		return fmt.Errorf("usage: %s (optional) <limit>", cmd.Name)
+	}
+	if len(cmd.Args) == 1 {
+		input = cmd.Args[0]
+	} else {
+		input = "2"
+	}
+	lim, err := strconv.Atoi(input)
+	if err != nil {
+		return fmt.Errorf("Error handling limit: %v", err)
+	}
+	limit := int32(lim)
+
+	posts, err := s.db.GetPostsForUser(context.Background(), database.GetPostsForUserParams{Name: currUser.Name, Limit: limit})
+	if err != nil {
+		return fmt.Errorf("Error getting posts for user: %v", err)
+	}
+
+	for _, item := range posts {
+		fmt.Printf("Title: %s\n", item.Title)
+		fmt.Printf("CreatedAt: %v\n", item.CreatedAt)
+		fmt.Printf("Url: %s\n", item.Url)
+		fmt.Printf("Description: %v\n", item.Description)
+	}
+	return nil
+}
 
 func handlerUnfollow(s *state, cmd command, currUser database.User) error {
 	// accept feed url as arg and unfollow it for current user
