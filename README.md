@@ -17,7 +17,7 @@ brew install postgresql@14
 brew install go
 `
 
-3. Install gator
+3. Install blogator
 `go build`
 
 ### Configuration
