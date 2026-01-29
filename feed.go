@@ -56,7 +56,7 @@ func scrapeFeeds(s *state) error {
 }
 
 func scrapeFeed(db *database.Queries, feed database.Feed) {
-	if err := db.MarkFeedFetched(context.Background(), database.MarkFeedFetchedParams{LastFetchedAt: timeToNullTime(time.Now().UTC()), ID: feed.ID}); err != nil {
+	if err := db.MarkFeedFetched(context.Background(), feed.ID); err != nil {
 		log.Printf("Error marking feed as fetched: %v", err)
 		return
 	}
